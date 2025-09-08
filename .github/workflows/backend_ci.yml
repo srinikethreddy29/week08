@@ -26,6 +26,12 @@ env:
   IMAGE_TAG: ${{ github.sha }}-${{ github.run_id }}
 
 jobs:
+  # Inject secrets as env for all jobs
+  env:
+    ACR_NAME: ${{ secrets.ACR_NAME }}
+    ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
+    AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+
   # Job 1: Run tests and linting for all backend services
   test_and_lint_backends:
     runs-on: ubuntu-latest # Use a GitHub-hosted runner
@@ -126,7 +132,7 @@ jobs:
 
     # Login to Azure Container Registry (ACR)
     - name: Login to Azure Container Registry
-      run: az acr login --name ${{ env.ACR_LOGIN_SERVER }}
+      run: az acr login --name 
 
     # Build and Push Docker image for Product Service
     - name: Build and Push Product Service Image

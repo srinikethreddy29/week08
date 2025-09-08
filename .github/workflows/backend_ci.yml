@@ -17,7 +17,6 @@ on:
       - '.github/workflows/backend_ci.yml' # Trigger if this workflow file changes
 
 # Define global environment variables that can be used across jobs
-env:
   # ACR Login Server (e.g., myregistry.azurecr.io)
   # This needs to be set as a GitHub Repository Secret
   ACR_LOGIN_SERVER: ${{ secrets.AZURE_CONTAINER_REGISTRY }}
@@ -27,10 +26,6 @@ env:
 
 jobs:
   # Inject secrets as env for all jobs
-  env:
-    ACR_NAME: ${{ secrets.ACR_NAME }}
-    ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
-    AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
 
   # Job 1: Run tests and linting for all backend services
   test_and_lint_backends:
@@ -40,7 +35,6 @@ jobs:
       # Product DB container
       product_db:
         image: postgres:15
-        env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: products
@@ -56,7 +50,6 @@ jobs:
       # Order DB
       order_db:
         image: postgres:15
-        env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: orders
@@ -94,7 +87,6 @@ jobs:
       # 5. Run tests for product service
       - name: Run product_service tests
         working-directory: backend/product_service
-        env:
           POSTGRES_HOST: localhost
           POSTGRES_PORT: 5432
           POSTGRES_DB: products
@@ -106,7 +98,6 @@ jobs:
       # 6. Run tests for order service
       - name: Run order_service tests
         working-directory: backend/order_service
-        env:
           POSTGRES_HOST: localhost
           POSTGRES_PORT: 5433
           POSTGRES_DB: orders

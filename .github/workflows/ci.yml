@@ -1,0 +1,99 @@
+name: CI — Build & Test (PRs) / Push (main)
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - ".github/workflows/ci.yml"
+  push:
+    branches: [ main ]
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - ".github/workflows/ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [product_service, order_service]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set paths
+        id: paths
+        run: |
+          echo "CTX=backend/${{ matrix.service }}" >> $GITHUB_OUTPUT
+          echo "DOCKERFILE=backend/${{ matrix.service }}/Dockerfile" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ matrix.service }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-${{ matrix.service }}-
+
+      - name: Build image (no push)
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ steps.paths.outputs.CTX }}
+          file: ${{ steps.paths.outputs.DOCKERFILE }}
+          push: false
+          tags: local/${{ matrix.service }}:ci-${{ github.sha }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-frontend-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-frontend-
+
+      - name: Build image (no push)
+        uses: docker/build-push-action@v5
+        with:
+          context: frontend
+          file: frontend/Dockerfile
+          push: false
+          tags: local/frontend:ci-${{ github.sha }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
